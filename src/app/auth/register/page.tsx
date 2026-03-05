@@ -23,19 +23,40 @@ export default function AuthRegister() {
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(prev => ({ ...prev, [key]: e.target.value }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const { firstName, lastName, email, password, confirm } = form;
+    const { firstName, lastName, email, password, confirm, company } = form; // Added company
+
     if (!firstName || !lastName || !email || !password) { setError('Veuillez remplir tous les champs obligatoires.'); return; }
     if (password.length < 8) { setError('Le mot de passe doit contenir au moins 8 caractères.'); return; }
     if (password !== confirm) { setError('Les mots de passe ne correspondent pas.'); return; }
+    
     setLoading(true);
-    // TODO: replace with real auth
-    setTimeout(() => {
-      setLoading(false);
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firstName, lastName, email, company, password }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Erreur lors de l\'inscription');
+      }
+
+      // Successful registration
       router.push('/diagnostic');
-    }, 1400);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Une erreur est survenue.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
