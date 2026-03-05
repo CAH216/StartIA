@@ -29,7 +29,7 @@ export async function GET() {
     ]);
 
     const avgScore = allDiagnostics.length
-      ? Math.round(allDiagnostics.reduce((s: number, d) => s + d.score, 0) / allDiagnostics.length)
+      ? Math.round(allDiagnostics.reduce((s: number, d: { score: number }) => s + d.score, 0) / allDiagnostics.length)
       : 0;
 
     return NextResponse.json({
