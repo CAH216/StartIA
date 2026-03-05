@@ -1,0 +1,267 @@
+// StratIA — Schéma Prisma
+// npx prisma db push   → crée/met à jour les tables dans Supabase
+// npx prisma studio    → interface visuelle pour les données
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+// ─── Users ───────────────────────────────────────────────────
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  passwordHash   String?  @map("password_hash")
+  fullName       String?  @map("full_name")
+  companyName    String?  @map("company_name")
+  sector         String?
+  province       String?
+  role           Role     @default(USER)
+  plan           Plan     @default(FREE)
+  avatarUrl      String?  @map("avatar_url")
+  createdAt      DateTime @default(now()) @map("created_at")
+  lastActiveAt   DateTime @default(now()) @map("last_active_at")
+
+  // Relation employer → clients (un employer gère plusieurs clients)
+  employerId     String?  @map("employer_id")
+  employer       User?    @relation("EmployerClients", fields: [employerId], references: [id])
+  clients        User[]   @relation("EmployerClients")
+
+  diagnostics      Diagnostic[]
+  tasks            Task[]
+  sessions         Session[]
+  subscription     Subscription?
+  certificates     Certificate[]
+
+  // Expert bookings
+  bookingsAsClient   ExpertBooking[] @relation("BookingClient")
+  bookingsAsEmployer ExpertBooking[] @relation("BookingEmployer")
+
+  // Community
+  posts            Post[]
+  postReplies      PostReply[]
+
+  // Resources & Formations (created by employer)
+  resources        Resource[]
+  formations       Formation[]
+
+  @@map("users")
+}
+
+enum Role {
+  USER
+  EMPLOYER
+  ADMIN
+
+  @@map("role")
+}
+
+enum Plan {
+  FREE
+  PRO
+
+  @@map("plan")
+}
+
+// ─── Diagnostics ─────────────────────────────────────────────
+model Diagnostic {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  score     Int
+  level     String
+  summary   String?
+  data      Json?    // { priorities, tools, risks, metrics... }
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("diagnostics")
+}
+
+// ─── Tasks (Roadmap) ─────────────────────────────────────────
+model Task {
+  id        String     @id @default(uuid())
+  userId    String     @map("user_id")
+  taskKey   String     @map("task_key")  // ex: "0-1"
+  status    TaskStatus @default(IDLE)
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, taskKey])
+  @@index([userId])
+  @@map("tasks")
+}
+
+enum TaskStatus {
+  IDLE
+  ACTIVE
+  DONE
+
+  @@map("task_status")
+}
+
+// ─── Sessions (Assistant IA) ──────────────────────────────────
+model Session {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String?
+  messages  Json     @default("[]")  // [{ role, content }]
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// ─── Subscriptions ───────────────────────────────────────────
+model Subscription {
+  id                   String             @id @default(uuid())
+  userId               String             @unique @map("user_id")
+  plan                 Plan               @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  startedAt            DateTime           @default(now()) @map("started_at")
+  expiresAt            DateTime?          @map("expires_at")
+  stripeCustomerId     String?            @map("stripe_customer_id")
+  stripeSubscriptionId String?            @map("stripe_subscription_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+
+  @@map("subscription_status")
+}
+
+// ─── Certificates ─────────────────────────────────────────────
+model Certificate {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  name          String
+  issuer        String?
+  issueDate     DateTime? @map("issue_date")
+  expiryDate    DateTime? @map("expiry_date")
+  credentialUrl String?   @map("credential_url")
+  fileUrl       String?   @map("file_url")
+  notes         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("certificates")
+}
+
+// ─── Expert Bookings (Session Expert) ─────────────────────────
+model ExpertBooking {
+  id          String        @id @default(uuid())
+  userId      String        @map("user_id")
+  employerId  String?       @map("employer_id")
+  topic       String
+  description String?
+  slot        String
+  status      BookingStatus @default(PENDING)
+  notes       String?
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  user     User  @relation("BookingClient",   fields: [userId],     references: [id], onDelete: Cascade)
+  employer User? @relation("BookingEmployer", fields: [employerId], references: [id])
+
+  @@index([userId])
+  @@index([employerId])
+  @@map("expert_bookings")
+}
+
+enum BookingStatus {
+  PENDING
+  ACCEPTED
+  REFUSED
+
+  @@map("booking_status")
+}
+
+// ─── Resources (Bibliothèque) ─────────────────────────────────
+model Resource {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  category    String
+  type        String   @default("PDF")
+  fileUrl     String?  @map("file_url")
+  premium     Boolean  @default(false)
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([createdById])
+  @@map("resources")
+}
+
+// ─── Formations ───────────────────────────────────────────────
+model Formation {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  dates       String[]
+  duration    String?
+  price       Float?
+  priceLabel  String?  @map("price_label")
+  format      String   @default("En ligne")
+  category    String   @default("IA")
+  tags        String[]
+  featured    Boolean  @default(false)
+  fileUrl     String?  @map("file_url")
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([createdById])
+  @@map("formations")
+}
+
+// ─── Community Posts ──────────────────────────────────────────
+model Post {
+  id        String      @id @default(uuid())
+  authorId  String      @map("author_id")
+  title     String
+  content   String
+  tags      String[]
+  likes     Int         @default(0)
+  pinned    Boolean     @default(false)
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  author  User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  replies PostReply[]
+
+  @@index([authorId])
+  @@map("posts")
+}
+
+// ─── Community Replies ────────────────────────────────────────
+model PostReply {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  authorId  String   @map("author_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post   Post @relation(fields: [postId],   references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([authorId])
+  @@map("post_replies")
+}
