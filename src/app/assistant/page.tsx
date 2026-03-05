@@ -4,7 +4,7 @@ import AppShell from '@/components/AppShell';
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
-  Bot, Send, User, RefreshCw, Paperclip, X,
+  Bot, Send, RefreshCw, Paperclip, X,
   ExternalLink, CheckSquare, Square,
   Clock, Zap, Calendar, ChevronDown, ChevronUp, AlertCircle,
   TrendingUp, Youtube, MessageSquare, Trash2, Plus, Menu,
@@ -15,12 +15,11 @@ import {
   loadProfile, saveProfile, hasProfile, profileToContext,
   SECTORS, HOURLY_RATE_OPTIONS, type UserProfile,
 } from '@/lib/profile';
-import { recordRoiEntry, saveCoachContext, fmt$ } from '@/lib/roi';
+import { recordRoiEntry, saveCoachContext } from '@/lib/roi';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
 // ─────────────────────────────────────────────────────────────────────────────
-interface ApiMessage { role: 'user' | 'assistant'; content: string; }
 
 interface RoiData { hoursPerWeek: number; monthlySavings: number; }
 
@@ -151,10 +150,7 @@ function ActionCardWidget({ card, hourlyRate }: { card: ActionCard; hourlyRate: 
 
   // Sync completion state if steps change
   useEffect(() => {
-    setDone(prev => {
-      if (prev.length !== steps.length) return steps.map(() => false);
-      return prev;
-    });
+    setDone(Array(steps.length).fill(false));
   }, [steps.length]);
 
   const completed = done.filter(Boolean).length;
@@ -319,9 +315,9 @@ function ProfileWizard({ onComplete }: { onComplete: (p: Partial<UserProfile>) =
       </div>
       <div className="flex flex-wrap gap-2">
         {HOURLY_RATE_OPTIONS.map(r => (
-          <button key={r} onClick={() => onComplete({ sector, hourlyRate: r })}
+          <button key={r.value} onClick={() => onComplete({ sector, hourlyRate: r.value })}
             className="text-xs px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:border-blue-500 hover:text-blue-500 transition-all">
-            {r}$/h
+            {r.label}
           </button>
         ))}
       </div>

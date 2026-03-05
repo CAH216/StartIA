@@ -62,8 +62,9 @@ export function calcMonthlySavings(hoursPerWeek: number, hourlyRate: number): nu
 
 // ── Conversation context saved after each coach session ───────────────────────
 export interface CoachContext {
-  lastTask: string;
+  lastTask?: string;
   lastMessages: string[];
+  toolsFound?: string[];
   savedAt: number;
 }
 
