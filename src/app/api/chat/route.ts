@@ -1,5 +1,7 @@
 import { NextRequest } from 'next/server';
 import Groq from 'groq-sdk';
+import { formatCatalogueForChat } from '@/lib/formations-catalogue';
+
 
 const MODEL = 'llama-3.3-70b-versatile';
 
@@ -16,6 +18,12 @@ RÈGLES ABSOLUES :
 5. Si trop complexe ou utilisateur bloqué : needsExpert: true.
 
 PROFIL : Si un profil client est fourni dans le contexte, adapte tes réponses en conséquence.
+
+CATALOGUE DES FORMATIONS STRATIAIA DISPONIBLES (propose-en quand c'est pertinent) :
+${formatCatalogueForChat()}
+Pour recommander une formation, utilise : [Voir la formation](/formations?open=ID_DE_LA_FORMATION)
+Exemple : "Je vous recommande [Maîtriser ChatGPT](/formations?open=f001) pour commencer."
+Ne propose QUE des formations de ce catalogue, avec leur ID exact.
 
 IMPORTANT — Réponds UNIQUEMENT en JSON valide. Format strict :
 {
@@ -39,6 +47,7 @@ Règles JSON :
   - "roi.hoursPerWeek" : heures hebdomadaires économisées (estimation réaliste).
   - "roi.monthlySavings" : économies mensuelles en dollars (basé sur 60$/h si taux inconnu).
 - Réponds toujours en français.`;
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES

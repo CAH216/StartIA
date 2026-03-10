@@ -3,7 +3,10 @@ import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
-// GET — liste tous les utilisateurs
+const VALID_ROLES = ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] as const;
+type ValidRole = typeof VALID_ROLES[number];
+
+/* ── GET — liste tous les utilisateurs ───────────── */
 export async function GET() {
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') {
@@ -15,8 +18,7 @@ export async function GET() {
     select: {
       id: true, email: true, fullName: true, companyName: true,
       sector: true, province: true, role: true, plan: true,
-      createdAt: true, lastActiveAt: true, employerId: true,
-      employer: { select: { id: true, fullName: true, email: true } },
+      createdAt: true, lastActiveAt: true,
       _count: { select: { diagnostics: true, tasks: true, certificates: true } },
     },
   });
@@ -24,17 +26,24 @@ export async function GET() {
   return NextResponse.json(users);
 }
 
-// POST — créer un utilisateur
+/* ── POST — créer un utilisateur ─────────────────── */
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
   }
 
-  const { email, password, fullName, companyName, role, sector, province, plan, employerId } = await req.json();
+  const { email, password, fullName, companyName, role, sector, province, plan } = await req.json();
 
   if (!email || !password || !role) {
     return NextResponse.json({ error: 'Email, mot de passe et rôle requis' }, { status: 400 });
+  }
+
+  if (!VALID_ROLES.includes(role as ValidRole)) {
+    return NextResponse.json(
+      { error: `Rôle invalide. Valeurs acceptées : ${VALID_ROLES.join(', ')}` },
+      { status: 400 }
+    );
   }
 
   const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
@@ -46,15 +55,15 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.create({
     data: {
-      email:       email.toLowerCase().trim(),
+      email: email.toLowerCase().trim(),
       passwordHash,
-      fullName:    fullName    || null,
+      fullName: fullName || null,
       companyName: companyName || null,
-      sector:      sector      || null,
-      province:    province    || null,
-      role,
-      plan:        plan        || 'FREE',
-      employerId:  employerId  || null,
+      sector: sector || null,
+      province: province || null,
+      role: role as any,   // FORMATEUR | USER | EMPLOYER | ADMIN — cast needed until Prisma client refresh
+      // plan uniquement pertinent pour les clients USER
+      plan: role === 'USER' ? (plan || 'FREE') : 'FREE',
     },
     select: { id: true, email: true, fullName: true, role: true, plan: true, createdAt: true },
   });

@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import AppShell from '@/components/AppShell';
+import OnboardingModal from '@/components/OnboardingModal';
 import Link from 'next/link';
 import {
   Download, Award, FileText,
   Calendar, Clock, Shield, ExternalLink,
-  Brain, Map, Bot, ArrowRight, Zap, Star, X, PartyPopper, Loader2, AlertCircle, Lock,
+  Sparkles, ArrowRight, Star, X, PartyPopper, Loader2, AlertCircle, Lock,
 } from 'lucide-react';
 
 interface Certificate {
@@ -22,9 +23,9 @@ interface Certificate {
 }
 
 export default function DocumentsPage() {
-  const [certs,       setCerts]       = useState<Certificate[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState('');
+  const [certs, setCerts] = useState<Certificate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showWelcome, setShowWelcome] = useState(() => {
     if (typeof window === 'undefined') return false;
     const isFirst = localStorage.getItem('btm_is_first_login') === 'true';
@@ -32,6 +33,8 @@ export default function DocumentsPage() {
     return isFirst;
   });
   const [downloaded, setDownloaded] = useState<string[]>([]);
+  const [isNewUser, setIsNewUser] = useState(false);
+  const [firstName, setFirstName] = useState('');
 
   useEffect(() => {
     fetch('/api/my/certificates')
@@ -39,10 +42,18 @@ export default function DocumentsPage() {
       .then(data => setCerts(Array.isArray(data) ? data : []))
       .catch(e => setError(String(e)))
       .finally(() => setLoading(false));
+
+    // Client A onboarding detection
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(data => {
+      if (data?.isNewUser) setIsNewUser(true);
+      if (data?.fullName) setFirstName(data.fullName.split(' ')[0]);
+    }).catch(() => null);
   }, []);
 
   return (
     <AppShell>
+      {/* Onboarding plein-écran (déclenché via ?welcome=cert) */}
+      <OnboardingModal />
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
 
         {/* ── First-login welcome banner ────────────────────────────────── */}
@@ -121,7 +132,7 @@ export default function DocumentsPage() {
             <div className="space-y-3">
               {certs.map((cert) => {
                 const expired = !cert.expiryDate ? false : new Date(cert.expiryDate) < new Date();
-                const fresh   = new Date(cert.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+                const fresh = new Date(cert.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
                 const statusStyle = expired
                   ? { bg: 'color-mix(in srgb, #ef4444 12%, transparent)', text: '#f87171', border: 'color-mix(in srgb, #ef4444 30%, transparent)', label: 'Expiré' }
                   : { bg: 'color-mix(in srgb, #059669 12%, transparent)', text: '#059669', border: 'color-mix(in srgb, #059669 30%, transparent)', label: 'Disponible' };
@@ -191,16 +202,16 @@ export default function DocumentsPage() {
                     </div>
 
                     {downloaded.includes(cert.id) && (
-                      <div className="mt-3 rounded-xl p-4 flex items-center justify-between gap-3"
-                        style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.1), rgba(6,182,212,0.06))', border: '1px solid rgba(59,130,246,0.25)' }}>
+                      <div className="mt-3 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+                        style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(59,130,246,0.06))', border: '1px solid rgba(139,92,246,0.25)' }}>
                         <div>
                           <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>✅ Certificat téléchargé !</p>
-                          <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>Transformez cette formation en plan d&apos;action concret.</p>
+                          <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>Vous voulez aller plus loin ? Découvrez les formations faites pour vous.</p>
                         </div>
-                        <Link href="/diagnostic"
+                        <Link href="/parcours?from=cert"
                           className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white"
-                          style={{ background: 'var(--primary)' }}>
-                          <Brain size={14} /> Faire le diagnostic →
+                          style={{ background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)' }}>
+                          <Sparkles size={14} /> Trouver mes formations →
                         </Link>
                       </div>
                     )}
@@ -211,19 +222,19 @@ export default function DocumentsPage() {
           )}
         </div>
 
-        {/* ── BatimatIA upsell ─────────────────────────────────────────────── */}
+        {/* ── Parcours IA upsell ─────────────────────────────────────────────── */}
         <div className="rounded-2xl overflow-hidden"
-          style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow-md)' }}>
+          style={{ border: '1px solid rgba(139,92,246,0.25)', boxShadow: 'var(--shadow-md)' }}>
 
           {/* Header band */}
           <div className="px-6 py-4 flex items-center gap-3"
-            style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--primary) 15%, var(--bg-elevated)), color-mix(in srgb, var(--accent) 10%, var(--bg-elevated)))', borderBottom: '1px solid var(--border)' }}>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-md">
-              <Zap size={17} className="text-white" />
+            style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.1))', borderBottom: '1px solid rgba(139,92,246,0.2)' }}>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-blue-500 flex items-center justify-center flex-shrink-0 shadow-md">
+              <Sparkles size={17} className="text-white" />
             </div>
             <div>
               <p className="font-black text-sm" style={{ color: 'var(--text-primary)' }}>Votre prochaine étape avec StratIA</p>
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Transformez votre formation en plan d&apos;action concret — en 5 minutes</p>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Formations personnalisées selon votre profil — en 4 questions</p>
             </div>
             <div className="ml-auto flex items-center gap-1">
               {[...Array(5)].map((_, i) => <Star key={i} size={11} style={{ color: '#f59e0b' }} fill="#f59e0b" />)}
@@ -232,53 +243,42 @@ export default function DocumentsPage() {
           </div>
 
           <div className="p-6" style={{ background: 'var(--bg-surface)' }}>
-            <div className="mb-5">
-              <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                Vous avez obtenu votre certification. Maintenant, voyons comment appliquer ces connaissances{' '}
-                <strong style={{ color: 'var(--text-primary)' }}>concrètement dans votre entreprise</strong> — avec un plan à 90 jours personnalisé à votre réalité.
-              </p>
-            </div>
+            <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--text-secondary)' }}>
+              Vous avez obtenu votre certification. Vous voulez{' '}
+              <strong style={{ color: 'var(--text-primary)' }}>augmenter votre productivité, gagner plus de temps et plus d&apos;argent</strong>{' '}
+              et vous ne savez pas quelles formations il vous faut ?<br /><br />
+              Notre IA analyse votre profil en 4 questions et vous propose{' '}
+              <strong style={{ color: 'var(--text-primary)' }}>un parcours de formations sur mesure</strong> — chaque étape correspond à une formation concrète.
+            </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
               {[
-                { icon: Brain,  title: 'Diagnostic IA',   desc: 'Obtenez votre score de maturité IA + 3 priorités concrètes en 5 minutes.',       color: '#3b82f6', cta: 'Faire le diagnostic →', href: '/diagnostic', highlight: true },
-                { icon: Map,    title: 'Roadmap 90 jours',desc: 'Un plan mensuel actionnable adapté à votre score. Tâches, checklists, outils.',   color: '#8b5cf6', cta: 'Voir la roadmap →',    href: '/roadmap',    highlight: false },
-                { icon: Bot,    title: 'Assistant guidé', desc: 'Conseils concrets sur vos défis : soumissions, temps, équipe, finances.',          color: '#06b6d4', cta: 'Consulter →',         href: '/assistant',  highlight: false },
-              ].map(({ icon: Icon, title, desc, color, cta, href, highlight }) => (
-                <div key={title} className="rounded-xl p-4 relative"
-                  style={{ background: 'var(--bg-elevated)', border: `1px solid ${highlight ? `color-mix(in srgb, ${color} 35%, transparent)` : 'var(--border)'}` }}>
-                  {highlight && (
-                    <div className="absolute -top-2.5 left-4 px-2 py-0.5 rounded-full text-xs font-bold text-white" style={{ background: color }}>
-                      Commencer ici
-                    </div>
-                  )}
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3"
-                    style={{ background: `color-mix(in srgb, ${color} 15%, transparent)` }}>
-                    <Icon size={18} style={{ color }} />
-                  </div>
-                  <h4 className="text-sm font-bold mb-1" style={{ color: 'var(--text-primary)' }}>{title}</h4>
-                  <p className="text-xs leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>{desc}</p>
-                  <Link href={href} className="text-xs font-semibold" style={{ color }}>
-                    {cta}
-                  </Link>
+                { emoji: '⚡', title: '4 questions', desc: 'Moins de 2 minutes' },
+                { emoji: '🤖', title: 'IA personnalisée', desc: 'Formations adaptées à vous' },
+                { emoji: '🎓', title: 'Roadmap claire', desc: 'Chaque étape = 1 cours' },
+              ].map(({ emoji, title, desc }) => (
+                <div key={title} className="rounded-xl p-3 text-center" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+                  <div className="text-2xl mb-1">{emoji}</div>
+                  <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{title}</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{desc}</p>
                 </div>
               ))}
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl"
-              style={{ background: 'color-mix(in srgb, var(--primary) 8%, var(--bg-elevated))', border: '1px solid color-mix(in srgb, var(--primary) 20%, transparent)' }}>
+              style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(59,130,246,0.05))', border: '1px solid rgba(139,92,246,0.2)' }}>
               <div>
                 <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                  Diagnostic gratuit — aucune carte nécessaire
+                  Commencer gratuitement — aucune carte nécessaire
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                  Exclusif aux clients StratIA · Commencez en 5 minutes
+                  Exclusif aux clients StratIA · Parcours généré en secondes
                 </p>
               </div>
-              <Link href="/diagnostic"
+              <Link href="/parcours?from=cert"
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-white text-sm flex-shrink-0 transition-all shadow-md"
-                style={{ background: 'var(--primary)' }}>
-                <Brain size={15} /> Commencer gratuitement <ArrowRight size={14} />
+                style={{ background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)' }}>
+                <Sparkles size={15} /> Trouver mes formations <ArrowRight size={14} />
               </Link>
             </div>
           </div>

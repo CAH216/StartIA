@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
 import AppShell from '@/components/AppShell';
@@ -17,7 +17,7 @@ interface Stats {
 }
 interface AdminUser {
   id: string; email: string; fullName: string | null;
-  companyName: string | null; role: 'USER' | 'EMPLOYER' | 'ADMIN';
+  companyName: string | null; role: 'USER' | 'EMPLOYER' | 'FORMATEUR' | 'ADMIN';
   plan: string; province: string | null; sector: string | null;
   createdAt: string; lastActiveAt: string | null; employerId: string | null;
   employer: { id: string; fullName: string | null; email: string } | null;
@@ -25,8 +25,8 @@ interface AdminUser {
 }
 interface AddForm {
   email: string; password: string; fullName: string;
-  companyName: string; role: 'USER' | 'EMPLOYER' | 'ADMIN';
-  plan: 'FREE' | 'PRO'; employerId: string;
+  companyName: string; role: 'USER' | 'EMPLOYER' | 'FORMATEUR' | 'ADMIN';
+  plan: 'FREE' | 'PRO';
 }
 
 /* ── Helpers ───────────────────────────────────────────────────────────── */
@@ -56,9 +56,10 @@ function StatCard({ icon: Icon, label, value, sub, accent, trend }: {
 
 function RoleBadge({ role }: { role: string }) {
   const map: Record<string, { bg: string; color: string; label: string }> = {
-    ADMIN:    { bg: 'rgba(239,68,68,0.12)',   color: '#f87171', label: 'Admin'    },
-    EMPLOYER: { bg: 'rgba(245,158,11,0.12)',  color: '#fbbf24', label: 'Employer' },
-    USER:     { bg: 'rgba(59,130,246,0.12)',  color: '#60a5fa', label: 'Client'    },
+    ADMIN: { bg: 'rgba(239,68,68,0.12)', color: '#f87171', label: 'Admin' },
+    EMPLOYER: { bg: 'rgba(245,158,11,0.12)', color: '#fbbf24', label: 'Employeur' },
+    FORMATEUR: { bg: 'rgba(139,92,246,0.12)', color: '#a78bfa', label: 'Formateur' },
+    USER: { bg: 'rgba(59,130,246,0.12)', color: '#60a5fa', label: 'Client' },
   };
   const s = map[role] ?? map.USER;
   return (
@@ -77,22 +78,22 @@ function PlanBadge({ plan }: { plan: string }) {
   );
 }
 
-const EMPTY_FORM: AddForm = { email: '', password: '', fullName: '', companyName: '', role: 'USER', plan: 'FREE', employerId: '' };
+const EMPTY_FORM: AddForm = { email: '', password: '', fullName: '', companyName: '', role: 'USER', plan: 'FREE' };
 
 /* ── Main Component ────────────────────────────────────────────────────── */
 export default function AdminPage() {
-  const [stats,    setStats]    = useState<Stats | null>(null);
-  const [users,    setUsers]    = useState<AdminUser[]>([]);
-  const [search,   setSearch]   = useState('');
-  const [roleFilter, setRoleF]  = useState<'all' | 'USER' | 'EMPLOYER' | 'ADMIN'>('all');
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState('');
-  const [tab,      setTab]      = useState<'overview' | 'users'>('overview');
-  const [sortCol,  setSortCol]  = useState<keyof AdminUser>('createdAt');
-  const [sortAsc,  setSortAsc]  = useState(false);
-  const [showAdd,  setShowAdd]  = useState(false);
-  const [addForm,  setAddForm]  = useState<AddForm>(EMPTY_FORM);
-  const [saving,   setSaving]   = useState(false);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleF] = useState<'all' | 'USER' | 'EMPLOYER' | 'FORMATEUR' | 'ADMIN'>('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [tab, setTab] = useState<'overview' | 'users'>('overview');
+  const [sortCol, setSortCol] = useState<keyof AdminUser>('createdAt');
+  const [sortAsc, setSortAsc] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [addForm, setAddForm] = useState<AddForm>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
   const [addError, setAddError] = useState('');
   const [actionId, setActionId] = useState<string | null>(null);
 
@@ -113,7 +114,7 @@ export default function AdminPage() {
       setStats(sData);
       setUsers(Array.isArray(uData) ? uData : []);
     } catch (e) { setError((e as Error).message); }
-    finally    { setLoading(false); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { loadData(); }, []);
@@ -140,16 +141,16 @@ export default function AdminPage() {
   async function handleAddUser(e: FormEvent) {
     e.preventDefault(); setAddError(''); setSaving(true);
     try {
-      const res  = await fetch('/api/admin/users', {
+      const res = await fetch('/api/admin/users', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...addForm, employerId: addForm.employerId || undefined }),
+        body: JSON.stringify({ ...addForm }),
       });
       const data = await res.json();
       if (!res.ok) { setAddError(data.error || 'Erreur'); return; }
       setShowAdd(false);
       setAddForm(EMPTY_FORM);
       await loadData();
-    } catch { setAddError('Erreur reseau'); }
+    } catch { setAddError('Erreur réseau'); }
     finally { setSaving(false); }
   }
 
@@ -163,7 +164,7 @@ export default function AdminPage() {
     } finally { setActionId(null); }
   }
 
-  async function handleRoleChange(id: string, role: 'USER' | 'EMPLOYER' | 'ADMIN') {
+  async function handleRoleChange(id: string, role: 'USER' | 'EMPLOYER' | 'FORMATEUR' | 'ADMIN') {
     setActionId(id);
     try {
       const res = await fetch(`/api/admin/users/${id}`, {
@@ -198,7 +199,7 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto px-4 py-8">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-rose-600 to-orange-500 flex items-center justify-center">
@@ -213,7 +214,7 @@ export default function AdminPage() {
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Gestion complete — StratIA</p>
           </div>
           <button onClick={loadData} disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all flex-shrink-0"
             style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />Actualiser
           </button>
@@ -231,11 +232,10 @@ export default function AdminPage() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 p-1 rounded-xl w-fit"
-          style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+        <div className="tabs-scroll mb-6">
           {([['overview', "Vue d'ensemble"], ['users', 'Utilisateurs']] as const).map(([t, label]) => (
             <button key={t} onClick={() => setTab(t)}
-              className="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+              className="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap"
               style={tab === t
                 ? { background: 'var(--bg-surface)', color: 'var(--text-primary)', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }
                 : { color: 'var(--text-muted)' }}>
@@ -248,14 +248,14 @@ export default function AdminPage() {
         {tab === 'overview' && (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-              <StatCard icon={Users}       label="Utilisateurs total"  value={loading ? '...' : String(stats?.totalUsers ?? 0)}        accent="#3b82f6" sub={`${stats?.activeToday ?? 0} actifs aujourd'hui`} />
-              <StatCard icon={Crown}       label="Abonnes Pro"         value={loading ? '...' : String(stats?.proUsers ?? 0)}           accent="#f59e0b" sub="Plan 149$/mois" trend={{ val: '+12%', up: true }} />
-              <StatCard icon={DollarSign}  label="Revenu mensuel"      value={loading ? '...' : `${(stats?.totalRevenue ?? 0).toLocaleString('fr-CA')} $`} accent="#10b981" sub="MRR estime" trend={{ val: '+8%', up: true }} />
-              <StatCard icon={Brain}       label="Score moyen IA"      value={loading ? '...' : `${stats?.avgScore ?? 0}/100`}         accent="#8b5cf6" />
-              <StatCard icon={Activity}    label="Diagnostics lances"  value={loading ? '...' : String(stats?.totalDiagnostics ?? 0)}  accent="#06b6d4" />
-              <StatCard icon={CheckCircle} label="Taches completees"   value={loading ? '...' : String(stats?.tasksCompleted ?? 0)}    accent="#22c55e" />
-              <StatCard icon={Building2}   label="Employers"           value={loading ? '...' : String(stats?.employerCount ?? 0)}     accent="#f97316" />
-              <StatCard icon={Zap}         label="Actifs aujourd'hui"  value={loading ? '...' : String(stats?.activeToday ?? 0)}       accent="#a855f7" />
+              <StatCard icon={Users} label="Utilisateurs total" value={loading ? '...' : String(stats?.totalUsers ?? 0)} accent="#3b82f6" sub={`${stats?.activeToday ?? 0} actifs aujourd'hui`} />
+              <StatCard icon={Crown} label="Abonnes Pro" value={loading ? '...' : String(stats?.proUsers ?? 0)} accent="#f59e0b" sub="Plan 149$/mois" trend={{ val: '+12%', up: true }} />
+              <StatCard icon={DollarSign} label="Revenu mensuel" value={loading ? '...' : `${(stats?.totalRevenue ?? 0).toLocaleString('fr-CA')} $`} accent="#10b981" sub="MRR estime" trend={{ val: '+8%', up: true }} />
+              <StatCard icon={Brain} label="Score moyen IA" value={loading ? '...' : `${stats?.avgScore ?? 0}/100`} accent="#8b5cf6" />
+              <StatCard icon={Activity} label="Diagnostics lances" value={loading ? '...' : String(stats?.totalDiagnostics ?? 0)} accent="#06b6d4" />
+              <StatCard icon={CheckCircle} label="Taches completees" value={loading ? '...' : String(stats?.tasksCompleted ?? 0)} accent="#22c55e" />
+              <StatCard icon={Building2} label="Employers" value={loading ? '...' : String(stats?.employerCount ?? 0)} accent="#f97316" />
+              <StatCard icon={Zap} label="Actifs aujourd'hui" value={loading ? '...' : String(stats?.activeToday ?? 0)} accent="#a855f7" />
             </div>
 
             {/* Recent users */}
@@ -282,7 +282,7 @@ export default function AdminPage() {
                       <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{u.fullName || u.email}</p>
                       <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                         {u.companyName && <><Building2 size={9} className="inline mr-0.5" />{u.companyName} · </>}
-                        {u.province   && <><MapPin    size={9} className="inline mr-0.5" />{u.province} · </>}
+                        {u.province && <><MapPin size={9} className="inline mr-0.5" />{u.province} · </>}
                         {new Date(u.createdAt).toLocaleDateString('fr-CA')}
                       </p>
                     </div>
@@ -310,13 +310,13 @@ export default function AdminPage() {
                   style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
               </div>
               <div className="flex gap-2 flex-wrap">
-                {(['all', 'USER', 'EMPLOYER', 'ADMIN'] as const).map(r => (
+                {(['all', 'USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] as const).map(r => (
                   <button key={r} onClick={() => setRoleF(r)}
                     className="px-3 py-2 rounded-xl text-xs font-semibold transition-all"
                     style={roleFilter === r
                       ? { background: '#e85d2b', color: '#fff' }
                       : { background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
-                    {r === 'all' ? 'Tous' : r === 'USER' ? 'Clients' : r === 'EMPLOYER' ? 'Employers' : 'Admins'}
+                    {r === 'all' ? 'Tous' : r === 'USER' ? 'Clients' : r === 'EMPLOYER' ? 'Employeurs' : r === 'FORMATEUR' ? 'Formateurs' : 'Admins'}
                   </button>
                 ))}
               </div>
@@ -384,11 +384,12 @@ export default function AdminPage() {
                           <Loader2 size={14} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
                         ) : (
                           <select value={u.role}
-                            onChange={e => handleRoleChange(u.id, e.target.value as 'USER'|'EMPLOYER'|'ADMIN')}
+                            onChange={e => handleRoleChange(u.id, e.target.value as 'USER' | 'EMPLOYER' | 'FORMATEUR' | 'ADMIN')}
                             className="text-[11px] font-semibold rounded-lg px-2 py-1 border-0 cursor-pointer"
-                            style={{ background: 'transparent', color: u.role === 'ADMIN' ? '#f87171' : u.role === 'EMPLOYER' ? '#fbbf24' : '#60a5fa' }}>
+                            style={{ background: 'transparent', color: u.role === 'ADMIN' ? '#f87171' : u.role === 'EMPLOYER' ? '#fbbf24' : u.role === 'FORMATEUR' ? '#a78bfa' : '#60a5fa' }}>
                             <option value="USER">Client</option>
-                            <option value="EMPLOYER">Employer</option>
+                            <option value="EMPLOYER">Employeur</option>
+                            <option value="FORMATEUR">Formateur</option>
                             <option value="ADMIN">Admin</option>
                           </select>
                         )}
@@ -457,41 +458,33 @@ export default function AdminPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Nom complet</label>
-                  <input type="text" value={addForm.fullName} onChange={e => setAddForm(f => ({ ...f, fullName: e.target.value }))} style={inp} placeholder="Prenom Nom" />
+                  <input type="text" value={addForm.fullName} onChange={e => setAddForm(f => ({ ...f, fullName: e.target.value }))} style={inp} placeholder="Prénom Nom" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Entreprise</label>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Entreprise <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optionnel)</span></label>
                   <input type="text" value={addForm.companyName} onChange={e => setAddForm(f => ({ ...f, companyName: e.target.value }))} style={inp} placeholder="Nom de l'entreprise" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Role</label>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Rôle</label>
                   <select value={addForm.role} onChange={e => setAddForm(f => ({ ...f, role: e.target.value as AddForm['role'] }))} style={inp}>
-                    <option value="USER">Client (USER)</option>
-                    <option value="EMPLOYER">Employer</option>
+                    <option value="USER">Client</option>
+                    <option value="FORMATEUR">Formateur</option>
+                    <option value="EMPLOYER">Employeur StratIA</option>
                     <option value="ADMIN">Administrateur</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Plan</label>
-                  <select value={addForm.plan} onChange={e => setAddForm(f => ({ ...f, plan: e.target.value as AddForm['plan'] }))} style={inp}>
-                    <option value="FREE">FREE</option>
-                    <option value="PRO">PRO</option>
-                  </select>
-                </div>
+                {addForm.role === 'USER' && (
+                  <div>
+                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Plan</label>
+                    <select value={addForm.plan} onChange={e => setAddForm(f => ({ ...f, plan: e.target.value as AddForm['plan'] }))} style={inp}>
+                      <option value="FREE">FREE</option>
+                      <option value="PRO">PRO</option>
+                    </select>
+                  </div>
+                )}
               </div>
-              {addForm.role === 'USER' && employers.length > 0 && (
-                <div>
-                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Assigner a un employer (optionnel)</label>
-                  <select value={addForm.employerId} onChange={e => setAddForm(f => ({ ...f, employerId: e.target.value }))} style={inp}>
-                    <option value="">Aucun employer</option>
-                    {employers.map(em => (
-                      <option key={em.id} value={em.id}>{em.fullName || em.email}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
 
               {addError && (
                 <div className="px-3 py-2 rounded-xl text-xs" style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626' }}>

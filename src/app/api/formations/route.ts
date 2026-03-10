@@ -5,8 +5,11 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     const formations = await prisma.formation.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: { createdBy: { select: { fullName: true } } },
+      orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
+      include: {
+        createdBy: { select: { fullName: true } },
+        _count: { select: { purchases: true, enrollments: true } },
+      },
     });
     return NextResponse.json(formations);
   } catch (e) {
@@ -21,8 +24,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
 
   try {
-    const { title, description, dates, duration, price, priceLabel, format, category, tags, featured, fileUrl } =
-      await req.json();
+    const {
+      title, description, dates, duration, price, priceLabel,
+      format, category, tags, featured, fileUrl,
+      videoUrl, thumbnailUrl, isPaid, isFree,
+    } = await req.json();
     if (!title) return NextResponse.json({ error: 'Titre requis' }, { status: 400 });
 
     const formation = await prisma.formation.create({
@@ -38,6 +44,10 @@ export async function POST(req: NextRequest) {
         tags: tags ?? [],
         featured: featured ?? false,
         fileUrl: fileUrl ?? null,
+        videoUrl: videoUrl ?? null,
+        thumbnailUrl: thumbnailUrl ?? null,
+        isPaid: isPaid ?? false,
+        isFree: isFree ?? false,
         createdById: session.userId,
       },
     });

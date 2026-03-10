@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Sidebar from './Sidebar';
+import FloatingChat from './FloatingChat';
 import { Menu, Zap } from 'lucide-react';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -43,7 +44,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         {children}
       </main>
+
+      {/* Global floating chat assistant — visible on all pages */}
+      <FloatingChat />
     </div>
   );
 }
-

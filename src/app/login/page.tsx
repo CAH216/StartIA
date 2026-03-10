@@ -3,226 +3,175 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, ArrowRight, CheckCircle, FileText, Award, Shield } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Zap, GraduationCap, Video, TrendingUp, Loader2 } from 'lucide-react';
+
+const PERKS = [
+  { icon: GraduationCap, text: 'Accès à toutes les formations IA' },
+  { icon: Video, text: 'Sessions live avec nos formateurs' },
+  { icon: TrendingUp, text: 'Parcours IA personnalisé en secondes' },
+];
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (!email || !password) { setError('Veuillez remplir tous les champs.'); return; }
     setLoading(true);
-    // Simulate login — replace with real auth later
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Identifiants incorrects.');
+      const role = data.role;
+      if (role === 'ADMIN') router.push('/admin');
+      else if (role === 'EMPLOYER') router.push('/employer');
+      else if (role === 'FORMATEUR') router.push('/formateur');
+      else router.push('/dashboard');
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
       setLoading(false);
-      router.push('/documents');
-    }, 1200);
+    }
   };
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--bg-base)' }}>
 
-      {/* ── Left panel — Batimatech branding ───────────────────────────────── */}
+      {/* ── Left — StratIA brandpanel ──────────────────────────── */}
       <div className="hidden lg:flex lg:w-5/12 flex-col justify-between p-12 relative overflow-hidden"
-        style={{ background: 'linear-gradient(150deg, #e85d2b 0%, #c94a1f 40%, #a33b15 100%)' }}>
+        style={{ background: 'linear-gradient(150deg,#1e1b4b 0%,#312e81 50%,#1e3a8a 100%)' }}>
 
-        {/* Background pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 right-0 w-80 h-80 rounded-full" style={{ background: 'rgba(255,255,255,0.3)', transform: 'translate(30%, -30%)' }} />
-          <div className="absolute bottom-0 left-0 w-60 h-60 rounded-full" style={{ background: 'rgba(255,255,255,0.2)', transform: 'translate(-30%, 30%)' }} />
-        </div>
+        {/* Decorative blobs */}
+        <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-20" style={{ background: 'radial-gradient(circle,#818cf8,transparent)', transform: 'translate(30%,-30%)' }} />
+        <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full opacity-20" style={{ background: 'radial-gradient(circle,#06b6d4,transparent)', transform: 'translate(-30%,30%)' }} />
 
-        <div className="relative">
-          {/* Batimatech Logo */}
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center border border-white/30">
-              <svg width="26" height="26" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="4" y="22" width="32" height="6" rx="2" fill="white"/>
-                <rect x="10" y="10" width="20" height="10" rx="2" fill="white" opacity="0.8"/>
-                <rect x="16" y="4" width="8" height="6" rx="1" fill="white" opacity="0.6"/>
-              </svg>
-            </div>
-            <div>
-              <p className="text-white font-black text-xl tracking-tight">Batimatech</p>
-              <p className="text-orange-200 text-xs font-medium">Innovation · Construction · Numérique</p>
-            </div>
+        {/* Logo */}
+        <div className="relative flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center">
+            <Zap size={22} className="text-white" />
           </div>
-        </div>
-
-        <div className="relative space-y-6">
           <div>
-            <h1 className="text-3xl font-black text-white leading-tight mb-3">
-              Vos certificats<br />de formation <span className="text-orange-200">sont prêts</span>
-            </h1>
-            <p className="text-orange-100 text-base leading-relaxed">
-              Connectez-vous pour accéder à vos attestations RBQ et documents de formation.
-            </p>
+            <p className="font-black text-white text-xl">StratIA</p>
+            <p className="text-indigo-300 text-xs">Formations IA · Intégration Entreprise</p>
           </div>
+        </div>
 
-          <div className="space-y-3">
-            {[
-              { icon: Award,     text: 'Attestations reconnues RBQ, CMMTQ et CMEQ' },
-              { icon: FileText,  text: 'Téléchargez vos certificats en format PDF' },
-              { icon: Shield,    text: 'Documents sécurisés et disponibles en tout temps' },
-            ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
-                  <Icon size={15} className="text-white" />
+        {/* Hero text */}
+        <div className="relative">
+          <h1 className="text-4xl font-black text-white leading-tight mb-4">
+            Bienvenue<br />
+            <span className="text-transparent" style={{ WebkitTextFillColor: 'transparent', backgroundClip: 'text', backgroundImage: 'linear-gradient(135deg,#818cf8,#06b6d4)' }}>
+              sur StratIA
+            </span>
+          </h1>
+          <p className="text-indigo-200 text-sm leading-relaxed mb-8">
+            La plateforme de formations IA et d&apos;intégration intelligente pour les entreprises modernes.
+          </p>
+          <ul className="space-y-3">
+            {PERKS.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/15 flex items-center justify-center flex-shrink-0">
+                  <Icon size={15} className="text-indigo-300" />
                 </div>
-                <p className="text-orange-100 text-sm">{text}</p>
+                <span className="text-sm text-indigo-100">{text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Social proof */}
+        <div className="relative flex items-center gap-2 text-xs text-indigo-300">
+          <div className="flex -space-x-1.5">
+            {['#8b5cf6', '#3b82f6', '#06b6d4', '#10b981'].map((c, i) => (
+              <div key={i} className="w-7 h-7 rounded-full border-2 border-indigo-900 flex items-center justify-center text-white font-bold text-[9px]" style={{ background: c }}>
+                {['M', 'J', 'S', 'A'][i]}
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Bottom credit */}
-        <div className="relative">
-          <p className="text-orange-200 text-xs">© 2026 Batimatech · 405 avenue Ogilvy, Montréal QC</p>
+          200+ professionnels formés ce mois
         </div>
       </div>
 
-      {/* ── Right panel — Login form ──────────────────────────────────────── */}
+      {/* ── Right — Login form ─────────────────────────────────── */}
       <div className="flex-1 flex flex-col items-center justify-center p-8">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-sm">
 
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: '#e85d2b' }}>
-              <svg width="20" height="20" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="4" y="22" width="32" height="6" rx="2" fill="white"/>
-                <rect x="10" y="10" width="20" height="10" rx="2" fill="white" opacity="0.8"/>
-                <rect x="16" y="4" width="8" height="6" rx="1" fill="white" opacity="0.6"/>
-              </svg>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-cyan-500 flex items-center justify-center">
+              <Zap size={20} className="text-white" />
             </div>
-            <span className="font-black text-lg" style={{ color: 'var(--text-primary)' }}>Batimatech</span>
+            <span className="font-black text-xl" style={{ color: 'var(--text-primary)' }}>StratIA</span>
           </div>
 
-          {/* Header */}
-          <div className="mb-6">
-            <h2 className="text-2xl font-black mb-1" style={{ color: 'var(--text-primary)' }}>
-              Accédez à vos documents
-            </h2>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Connectez-vous avec les identifiants fournis par Batimatech
-            </p>
-          </div>
+          <h2 className="text-2xl font-black mb-1" style={{ color: 'var(--text-primary)' }}>Connexion</h2>
+          <p className="text-sm mb-8" style={{ color: 'var(--text-secondary)' }}>
+            Pas encore de compte ?{' '}
+            <Link href="/auth/register" className="font-semibold hover:underline" style={{ color: '#6366f1' }}>
+              S&apos;inscrire gratuitement
+            </Link>
+          </p>
 
-          {/* Formation email reminder */}
-          <div className="flex items-start gap-3 p-3.5 rounded-xl mb-6"
-            style={{ background: 'color-mix(in srgb, #f59e0b 12%, var(--bg-elevated))', border: '1px solid color-mix(in srgb, #f59e0b 35%, transparent)' }}>
-            <span className="text-lg leading-none mt-0.5">📧</span>
-            <div>
-              <p className="text-xs font-bold mb-0.5" style={{ color: '#d97706' }}>Adresse courriel requise</p>
-              <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                Utilisez l&apos;adresse courriel avec laquelle vous vous êtes inscrit(e)
-                à votre <strong>formation Batimatech</strong>. Elle diffère peut-être de votre courriel habituel.
-              </p>
-            </div>
-          </div>
-
-          {/* Certificate notification */}
-          <div className="flex items-center gap-3 p-4 rounded-xl mb-6"
-            style={{ background: 'color-mix(in srgb, #e85d2b 10%, var(--bg-elevated))', border: '1px solid color-mix(in srgb, #e85d2b 30%, transparent)' }}>
-            <CheckCircle size={18} style={{ color: '#e85d2b', flexShrink: 0 }} />
-            <div>
-              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                Votre certificat est prêt !
-              </p>
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                Connectez-vous pour le télécharger
-              </p>
-            </div>
-          </div>
-
-          {/* Form */}
           <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
-                Adresse courriel
-              </label>
-              <div className="relative">
-                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="votre@email.com"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all"
-                  style={{
-                    background: 'var(--bg-elevated)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-primary)',
-                  }}
-                  onFocus={e => { (e.target as HTMLInputElement).style.borderColor = '#e85d2b'; }}
-                  onBlur={e => { (e.target as HTMLInputElement).style.borderColor = 'var(--border)'; }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
-                Mot de passe
-              </label>
-              <div className="relative">
-                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all"
-                  style={{
-                    background: 'var(--bg-elevated)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-primary)',
-                  }}
-                  onFocus={e => { (e.target as HTMLInputElement).style.borderColor = '#e85d2b'; }}
-                  onBlur={e => { (e.target as HTMLInputElement).style.borderColor = 'var(--border)'; }}
-                />
-              </div>
-            </div>
-
             {error && (
-              <p className="text-sm" style={{ color: 'var(--danger)' }}>{error}</p>
+              <div className="px-4 py-3 rounded-xl text-sm" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }}>
+                {error}
+              </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white text-sm transition-all"
-              style={{ background: loading ? '#c94a1f' : '#e85d2b', opacity: loading ? 0.8 : 1 }}>
-              {loading ? (
-                <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Connexion en cours...</>
-              ) : (
-                <> Accéder à mes documents <ArrowRight size={15} /></>
-              )}
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-secondary)' }}>Adresse courriel</label>
+              <div className="relative">
+                <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+                  placeholder="vous@exemple.com"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl text-sm border focus:outline-none focus:ring-2 transition-all"
+                  style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                  onFocus={e => (e.target.style.borderColor = '#6366f1')}
+                  onBlur={e => (e.target.style.borderColor = 'var(--border)')} />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-secondary)' }}>Mot de passe</label>
+              <div className="relative">
+                <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                <input type={showPwd ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required
+                  placeholder="••••••••"
+                  className="w-full pl-10 pr-11 py-3 rounded-xl text-sm border focus:outline-none focus:ring-2 transition-all"
+                  style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                  onFocus={e => (e.target.style.borderColor = '#6366f1')}
+                  onBlur={e => (e.target.style.borderColor = 'var(--border)')} />
+                <button type="button" onClick={() => setShowPwd(p => !p)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}>
+                  {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white text-sm transition-all disabled:opacity-70"
+              style={{ background: 'linear-gradient(135deg,#6366f1,#3b82f6)', boxShadow: '0 6px 20px rgba(99,102,241,0.35)' }}>
+              {loading ? <><Loader2 size={16} className="animate-spin" /> Connexion...</> : <>Se connecter <ArrowRight size={15} /></>}
             </button>
           </form>
 
-          <div className="mt-5 space-y-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-            <a href="mailto:info@batimatech.com" className="hover:underline block">
-              Problème de connexion ? Contactez Batimatech
-            </a>
-            <p>
-              Pas encore inscrit(e) à BatimatIA ?{' '}
-              <Link href="/auth/register" className="font-semibold hover:underline" style={{ color: 'var(--primary)' }}>
-                Créer un compte
-              </Link>
-            </p>
-          </div>
-
-          {/* Powered by BatimatIA */}
-          <div className="mt-10 pt-6 flex items-center justify-center gap-2 text-xs"
-            style={{ borderTop: '1px solid var(--border)', color: 'var(--text-muted)' }}>
-            <span>Portail propulsé par</span>
-            <Link href="/" className="font-semibold" style={{ color: 'var(--primary)' }}>BatimatIA</Link>
-          </div>
+          <p className="mt-6 text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+            Vous êtes formateur ?{' '}
+            <Link href="/devenir-formateur" className="font-semibold hover:underline" style={{ color: '#8b5cf6' }}>
+              Rejoindre le réseau →
+            </Link>
+          </p>
         </div>
       </div>
     </div>

@@ -25,19 +25,20 @@ export async function POST(req: NextRequest) {
     // Mettre à jour lastActiveAt
     await prisma.user.update({
       where: { id: user.id },
-      data:  { lastActiveAt: new Date() },
+      data: { lastActiveAt: new Date() },
     });
 
     const token = await signToken({
       userId: user.id,
-      email:  user.email,
-      role:   user.role,
+      email: user.email,
+      role: user.role,
     });
 
-    // Destination selon le rôle
-    const redirect = user.role === 'ADMIN' ? '/admin'
-                   : user.role === 'EMPLOYER' ? '/employer'
-                   : '/dashboard';
+    const role = user.role as string;
+    const redirect = role === 'ADMIN' ? '/admin'
+      : role === 'EMPLOYER' ? '/employer'
+        : role === 'FORMATEUR' ? '/formateur'
+          : '/dashboard';
 
     const res = NextResponse.json({
       ok: true,
@@ -48,10 +49,10 @@ export async function POST(req: NextRequest) {
     res.cookies.set(COOKIE_NAME, token, {
       httpOnly: true,
       // Activer secure seulement si COOKIE_SECURE=true dans .env (HTTPS production)
-      secure:   process.env.COOKIE_SECURE === 'true',
+      secure: process.env.COOKIE_SECURE === 'true',
       sameSite: 'lax',
-      maxAge:   TTL,
-      path:     '/',
+      maxAge: TTL,
+      path: '/',
     });
 
     return res;

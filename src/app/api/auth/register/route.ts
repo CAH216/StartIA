@@ -44,8 +44,8 @@ export async function POST(req: NextRequest) {
       role: user.role,
     });
 
-    // Redirect to diagnostic after registration as requested, or dashboard
-    const redirect = '/diagnostic';
+    // Rediriger vers dashboard avec param welcome pour déclencher l'onboarding
+    const redirect = '/dashboard?welcome=1';
 
     const res = NextResponse.json({
       ok: true,

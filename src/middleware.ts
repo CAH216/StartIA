@@ -4,29 +4,43 @@ import { verifyToken } from '@/lib/auth';
 
 const PUBLIC_PATHS = [
   '/auth/login', '/auth/register', '/auth/magic-link',
-  '/login', '/',
-  '/api/auth/login', '/api/auth/logout',
+  '/login', '/', '/pricing', '/devenir-formateur',
+  '/api/auth/login', '/api/auth/logout', '/api/auth/register',
+  '/api/auth/google', '/api/auth/facebook',
+  '/api/voice',
+  '/demo',           // Mode guest — accès sans compte
+  '/api/demo',
 ];
 
 // Routes et le rôle minimum requis
 const ROLE_RULES: { pattern: RegExp; roles: string[] }[] = [
-  { pattern: /^\/admin/,          roles: ['ADMIN'] },
-  { pattern: /^\/api\/admin/,     roles: ['ADMIN'] },
-  { pattern: /^\/employer/,       roles: ['EMPLOYER', 'ADMIN'] },
-  { pattern: /^\/api\/employer/,  roles: ['EMPLOYER', 'ADMIN'] },
-  { pattern: /^\/api\/user/,      roles: ['USER', 'EMPLOYER', 'ADMIN'] },
-  { pattern: /^\/dashboard/,      roles: ['USER', 'EMPLOYER', 'ADMIN'] },
-  { pattern: /^\/diagnostic/,     roles: ['USER', 'EMPLOYER', 'ADMIN'] },
-  { pattern: /^\/roadmap/,        roles: ['USER', 'EMPLOYER', 'ADMIN'] },
-  { pattern: /^\/assistant/,      roles: ['USER', 'EMPLOYER', 'ADMIN'] },
-  { pattern: /^\/formations/,     roles: ['USER', 'EMPLOYER', 'ADMIN'] },
-  { pattern: /^\/rendez-vous/,    roles: ['USER', 'EMPLOYER', 'ADMIN'] },
-  { pattern: /^\/bibliotheque/,   roles: ['USER', 'EMPLOYER', 'ADMIN'] },
-  { pattern: /^\/communaute/,     roles: ['USER', 'EMPLOYER', 'ADMIN'] },
-  { pattern: /^\/pricing/,        roles: ['USER', 'EMPLOYER', 'ADMIN'] },
-  { pattern: /^\/documents/,      roles: ['USER', 'EMPLOYER', 'ADMIN'] },
-  { pattern: /^\/api\/admin/,     roles: ['ADMIN'] },
+  { pattern: /^\/admin/,            roles: ['ADMIN'] },
+  { pattern: /^\/api\/admin/,       roles: ['ADMIN'] },
+  { pattern: /^\/employer/,         roles: ['EMPLOYER', 'ADMIN'] },
+  { pattern: /^\/api\/employer/,    roles: ['EMPLOYER', 'ADMIN'] },
+  { pattern: /^\/formateur/,        roles: ['FORMATEUR', 'ADMIN'] },
+  { pattern: /^\/api\/formateur/,   roles: ['FORMATEUR', 'ADMIN'] },
+  { pattern: /^\/api\/user/,        roles: ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] },
+  // — Dashboard & pages protégées CLIENT —
+  { pattern: /^\/dashboard/,        roles: ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] },
+  { pattern: /^\/formations/,       roles: ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] },
+  { pattern: /^\/mes-formations/,   roles: ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] },
+  { pattern: /^\/parcours/,         roles: ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] },
+  { pattern: /^\/abonnement/,       roles: ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] },
+  { pattern: /^\/rendez-vous/,      roles: ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] },
+  { pattern: /^\/documents/,        roles: ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] },
+  { pattern: /^\/integration/,      roles: ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] },
+  { pattern: /^\/profil/,           roles: ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] },
+  { pattern: /^\/chatbot/,          roles: ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] },
+  { pattern: /^\/bibliotheque/,     roles: ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] },
+  { pattern: /^\/session-expert/,   roles: ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] },
+  // — API CLIENT —
+  { pattern: /^\/api\/integration/, roles: ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] },
+  { pattern: /^\/api\/auth\/me/,    roles: ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] },
+  { pattern: /^\/api\/my/,          roles: ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] },
+  { pattern: /^\/api\/profil/,      roles: ['USER', 'EMPLOYER', 'FORMATEUR', 'ADMIN'] },
 ];
+
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -62,14 +76,15 @@ export async function middleware(req: NextRequest) {
   if (!rule.roles.includes(session.role)) {
     // Rediriger vers le bon dashboard selon son rôle
     const home = session.role === 'ADMIN' ? '/admin'
-               : session.role === 'EMPLOYER' ? '/employer'
-               : '/dashboard';
+      : session.role === 'EMPLOYER' ? '/employer'
+        : session.role === 'FORMATEUR' ? '/formateur'
+          : '/dashboard';
     return NextResponse.redirect(new URL(home, req.url));
   }
 
   // Injecter l'info user dans les headers (lisible côté server components)
   const res = NextResponse.next();
-  res.headers.set('x-user-id',   session.userId);
+  res.headers.set('x-user-id', session.userId);
   res.headers.set('x-user-role', session.role);
   return res;
 }

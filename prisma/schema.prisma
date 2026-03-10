@@ -22,6 +22,9 @@ model User {
   role           Role     @default(USER)
   plan           Plan     @default(FREE)
   avatarUrl      String?  @map("avatar_url")
+  oauthProvider  String?  @map("oauth_provider")   // "google" | "facebook"
+  oauthId        String?  @map("oauth_id")         // sub / user ID from provider
+  isNewUser      Boolean  @default(true) @map("is_new_user")  // onboarding not shown yet
   createdAt      DateTime @default(now()) @map("created_at")
   lastActiveAt   DateTime @default(now()) @map("last_active_at")
 
@@ -48,12 +51,20 @@ model User {
   resources        Resource[]
   formations       Formation[]
 
+  // Formation marketplace
+  formationPurchases   FormationPurchase[]
+  formationEnrollments FormationEnrollment[]
+
+  // Intégration entreprise
+  integrationRequests  IntegrationRequest[]
+
   @@map("users")
 }
 
 enum Role {
   USER
   EMPLOYER
+  FORMATEUR
   ADMIN
 
   @@map("role")
@@ -211,25 +222,67 @@ model Resource {
 
 // ─── Formations ───────────────────────────────────────────────
 model Formation {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  dates       String[]
-  duration    String?
-  price       Float?
-  priceLabel  String?  @map("price_label")
-  format      String   @default("En ligne")
-  category    String   @default("IA")
-  tags        String[]
-  featured    Boolean  @default(false)
-  fileUrl     String?  @map("file_url")
+  id            String   @id @default(uuid())
+  title         String
+  description   String?
+  dates         String[]
+  duration      String?
+  price         Float?
+  priceLabel    String?  @map("price_label")
+  format        String   @default("En ligne")
+  category      String   @default("IA")
+  tags          String[]
+  featured      Boolean  @default(false)
+  fileUrl       String?  @map("file_url")
+
+  // Vidéo & marketplace
+  videoUrl      String?  @map("video_url")       // URL embed YouTube / Vimeo / Supabase
+  thumbnailUrl  String?  @map("thumbnail_url")
+  isPaid        Boolean  @default(false) @map("is_paid")  // achat unitaire requis
+  isFree        Boolean  @default(false) @map("is_free")  // gratuit pour abonnés PRO
+
   createdById String   @map("created_by_id")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy   User                   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  purchases   FormationPurchase[]
+  enrollments FormationEnrollment[]
 
   @@index([createdById])
   @@map("formations")
+}
+
+// Achat à l'unité
+model FormationPurchase {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  formationId String   @map("formation_id")
+  amount      Float    @default(0)              // prix au moment de l'achat
+  paidAt      DateTime @default(now()) @map("paid_at")
+
+  user      User      @relation(fields: [userId],      references: [id], onDelete: Cascade)
+  formation Formation @relation(fields: [formationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, formationId])
+  @@index([userId])
+  @@map("formation_purchases")
+}
+
+// Progression de visionnage
+model FormationEnrollment {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  formationId String    @map("formation_id")
+  progress    Int       @default(0)             // 0–100 %
+  completedAt DateTime? @map("completed_at")
+  enrolledAt  DateTime  @default(now()) @map("enrolled_at")
+
+  user      User      @relation(fields: [userId],      references: [id], onDelete: Cascade)
+  formation Formation @relation(fields: [formationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, formationId])
+  @@index([userId])
+  @@map("formation_enrollments")
 }
 
 // ─── Community Posts ──────────────────────────────────────────
@@ -264,4 +317,42 @@ model PostReply {
   @@index([postId])
   @@index([authorId])
   @@map("post_replies")
+}
+
+// ─── Integration Requests ─────────────────────────────────────
+model IntegrationRequest {
+  id             String            @id @default(uuid())
+  userId         String            @map("user_id")
+  companyName    String            @map("company_name")
+  sector         String
+  teamSize       String            @map("team_size")
+  currentTools   String            @map("current_tools")
+  mainChallenges String            @map("main_challenges")
+  budget         String
+  preferredSlot  String            @map("preferred_slot")
+  contactPhone   String?           @map("contact_phone")
+  notes          String?
+  status         IntegrationStatus @default(PENDING)
+  adminNotes     String?           @map("admin_notes")
+  assignedTo     String?           @map("assigned_to")
+  scheduledAt    DateTime?         @map("scheduled_at")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("integration_requests")
+}
+
+enum IntegrationStatus {
+  PENDING
+  REVIEWING
+  SCHEDULED
+  IN_PROGRESS
+  DELIVERED
+  CANCELLED
+
+  @@map("integration_status")
 }

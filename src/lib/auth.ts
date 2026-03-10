@@ -13,8 +13,8 @@ const TTL = 60 * 60 * 24 * 7; // 7 jours
 
 export type JwtPayload = {
   userId: string;
-  email:  string;
-  role:   'USER' | 'EMPLOYER' | 'ADMIN';
+  email: string;
+  role: 'USER' | 'EMPLOYER' | 'FORMATEUR' | 'ADMIN';
 };
 
 /** Crée un JWT signé */
