@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AppShell from '@/components/AppShell';
 import Link from 'next/link';
@@ -200,7 +200,7 @@ function RoadmapCard({ step, index, onOpenFormation }: {
 /* ──────────────── Page principale ─────────────────────── */
 type PageState = 'intro' | 'quiz' | 'loading' | 'result';
 
-export default function ParcoursPage() {
+function ParcoursPageInner() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const fromCert = searchParams.get('from') === 'cert';
@@ -524,4 +524,17 @@ export default function ParcoursPage() {
     }
 
     return null;
+}
+
+/* ── Suspense wrapper obligatoire pour useSearchParams() en Next.js 15 ── */
+export default function ParcoursPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#8b5cf6', borderTopColor: 'transparent' }} />
+      </div>
+    }>
+      <ParcoursPageInner />
+    </Suspense>
+  );
 }
