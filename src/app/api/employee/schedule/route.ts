@@ -35,9 +35,9 @@ export async function PUT(req: NextRequest) {
     await prisma.employeeAvailability.createMany({
       data: slots.map(s => ({
         employeeId: session.userId,
-        dayOfWeek: s.dayOfWeek,
-        hour: s.hour,
-        active: true,
+        dayOfWeek:  s.dayOfWeek,
+        hour:       s.hour,
+        active:     true,
       })),
       skipDuplicates: true,
     });

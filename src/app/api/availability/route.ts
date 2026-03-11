@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     where: { role: 'EMPLOYER' },
     select: {
       id: true,
-      availability: {
+      employeeSchedule: {
         where: { active: true },
         select: { dayOfWeek: true, hour: true },
       },
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
   // 3. Construire la map : dayOfWeek → hour → employerIds disponibles
   const availMap = new Map<string, Set<string>>(); // key: "dow-hour"
   for (const emp of employers) {
-    for (const slot of emp.availability) {
+    for (const slot of emp.employeeSchedule) {
       const key = `${slot.dayOfWeek}-${slot.hour}`;
       if (!availMap.has(key)) availMap.set(key, new Set());
       availMap.get(key)!.add(emp.id);
