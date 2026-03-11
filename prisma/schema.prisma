@@ -58,6 +58,9 @@ model User {
   // Intégration entreprise
   integrationRequests  IntegrationRequest[]
 
+  // Planning (pour les consultants/employers)
+  employeeSchedule     EmployeeAvailability[] @relation("EmployeeSchedule")
+
   @@map("users")
 }
 
@@ -173,24 +176,33 @@ model Certificate {
   @@map("certificates")
 }
 
-// ─── Expert Bookings (Session Expert) ─────────────────────────
+// ── Expert Bookings (Session Expert) ───────────────────────────
 model ExpertBooking {
-  id          String        @id @default(uuid())
-  userId      String        @map("user_id")
-  employerId  String?       @map("employer_id")
-  topic       String
-  description String?
-  slot        String
-  status      BookingStatus @default(PENDING)
-  notes       String?
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
+  id           String        @id @default(uuid())
+  // Client (peut être null si réservation publique sans compte)
+  userId       String?       @map("user_id")
+  employerId   String?       @map("employer_id")
+  // Infos client public (réservation sans compte)
+  clientName   String?       @map("client_name")
+  clientEmail  String?       @map("client_email")
+  clientTool   String?       @map("client_tool")
+  // Détails du créneau
+  topic        String
+  description  String?
+  slot         String
+  bookedDate   DateTime?     @map("booked_date")
+  bookedHour   Int?          @map("booked_hour")
+  status       BookingStatus @default(PENDING)
+  notes        String?
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
 
-  user     User  @relation("BookingClient",   fields: [userId],     references: [id], onDelete: Cascade)
-  employer User? @relation("BookingEmployer", fields: [employerId], references: [id])
+  user     User?  @relation("BookingClient",   fields: [userId],     references: [id], onDelete: SetNull)
+  employer User?  @relation("BookingEmployer", fields: [employerId], references: [id])
 
   @@index([userId])
   @@index([employerId])
+  @@index([bookedDate])
   @@map("expert_bookings")
 }
 
@@ -200,6 +212,21 @@ enum BookingStatus {
   REFUSED
 
   @@map("booking_status")
+}
+
+// ── Employee Availability (Planning des consultants) ──────────
+model EmployeeAvailability {
+  id         String  @id @default(uuid())
+  employeeId String  @map("employee_id")
+  dayOfWeek  Int     @map("day_of_week") // 0=Lun — 4=Ven
+  hour       Int                          // 8 — 18
+  active     Boolean @default(true)
+
+  employee User @relation("EmployeeSchedule", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, dayOfWeek, hour])
+  @@index([dayOfWeek, hour])
+  @@map("employee_availability")
 }
 
 // ─── Resources (Bibliothèque) ─────────────────────────────────
