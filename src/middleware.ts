@@ -8,8 +8,10 @@ const PUBLIC_PATHS = [
   '/api/auth/login', '/api/auth/logout', '/api/auth/register',
   '/api/auth/google', '/api/auth/facebook',
   '/api/voice',
-  '/demo',           // Mode guest — accès sans compte
+  '/demo',                    // Mode guest — accès sans compte
   '/api/demo',
+  '/demander-integration',    // Formulaire intégration public (sans compte)
+  '/api/demander-integration',
 ];
 
 // Routes et le rôle minimum requis

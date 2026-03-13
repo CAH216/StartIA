@@ -208,7 +208,7 @@ function Hero() {
   const orbeOp3 = isDark ? 0.12 : 0.06;
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center pt-24 pb-12 px-5 overflow-hidden">
+    <section id="hero" className="relative min-h-screen flex items-center justify-center pt-24 pb-12 px-5 overflow-hidden">
       <div className="absolute inset-0 -z-10" style={{ background: heroBg }}/>
       <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
         <div style={{ position:'absolute', width:750, height:750, borderRadius:'50%', top:-200, left:-250, opacity: orbeOp1, background:'radial-gradient(circle,#10b981,transparent 65%)', animation:'blobFloat 9s ease-in-out infinite' }}/>
